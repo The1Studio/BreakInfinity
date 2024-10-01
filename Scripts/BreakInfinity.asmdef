@@ -1,4 +1,11 @@
 ﻿{
   "name": "BreakInfinity",
-  "rootNamespace": "BreakInfinity"
+  "rootNamespace": "BreakInfinity",
+  "versionDefines": [
+    {
+      "name": "com.unity.nuget.newtonsoft-json",
+      "expression": "",
+      "define": "BREAKINFINITY_JSON"
+    }
+  ]
 }

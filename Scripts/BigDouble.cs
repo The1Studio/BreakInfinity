@@ -7,6 +7,9 @@ namespace BreakInfinity
     using System.Linq;
     using UnityEngine;
     using Random = System.Random;
+    #if BREAKINFINITY_JSON
+    using Newtonsoft.Json;
+    #endif
 
     [Serializable]
     public struct BigDouble : IFormattable, IComparable, IComparable<BigDouble>, IEquatable<BigDouble>
@@ -24,15 +27,24 @@ namespace BreakInfinity
         //The smallest exponent that can appear in a Double, though not all mantissas are valid here.
         private const long DOUBLE_EXP_MIN = -324;
 
-        [SerializeField] private double mantissa;
-        [SerializeField] private long   exponent;
+        #if BREAKINFINITY_JSON
+        [JsonProperty]
+        #endif
+        [field: SerializeField]
+        public double Mantissa { get; private set; }
+
+        #if BREAKINFINITY_JSON
+        [JsonProperty]
+        #endif
+        [field: SerializeField]
+        public long Exponent { get; private set; }
 
         // This constructor is used to prevent non-normalized values to be created via constructor.
         // ReSharper disable once UnusedParameter.Local
         private BigDouble(double mantissa, long exponent, PrivateConstructorArg _)
         {
-            this.mantissa = mantissa;
-            this.exponent = exponent;
+            this.Mantissa = mantissa;
+            this.Exponent = exponent;
         }
 
         public BigDouble(double mantissa, long exponent)
@@ -42,8 +54,8 @@ namespace BreakInfinity
 
         public BigDouble(BigDouble other)
         {
-            this.mantissa = other.mantissa;
-            this.exponent = other.exponent;
+            this.Mantissa = other.Mantissa;
+            this.Exponent = other.Exponent;
         }
 
         public BigDouble(double value)
@@ -95,9 +107,6 @@ namespace BreakInfinity
 
             return FromMantissaExponentNoNormalize(mantissa, exponent + tempExponent);
         }
-
-        public double Mantissa => this.mantissa;
-        public long   Exponent => this.exponent;
 
         public static BigDouble FromMantissaExponentNoNormalize(double mantissa, long exponent)
         {
@@ -898,6 +907,7 @@ namespace BreakInfinity
 
             private static string FormatIncremental(BigDouble value, int places)
             {
+                if (value.Exponent <= -EXP_LIMIT || IsZero(value.Mantissa)) return "0";
                 var log10    = (long)Log10(value);
                 var mantissa = value.Mantissa * PowersOf10.Lookup(log10 % 3) % 1000;
                 var unit     = (int)(log10 / 3);
