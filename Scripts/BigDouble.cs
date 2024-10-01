@@ -1,43 +1,29 @@
-﻿using System;
-using System.Globalization;
-using Random = System.Random;
-
-// I'm not sure if there's a "Yes, this is Unity" define symbol
-// (#if UNITY doesn't seem to work). If you happen to know one - please create
-// an issue here https://github.com/Razenpok/BreakInfinity.cs/issues.
-#if UNITY_2017_1_OR_NEWER
-using UnityEngine;
-#endif
-
+﻿#nullable enable
 namespace BreakInfinity
 {
-#if UNITY_2017_1_OR_NEWER
+    using System;
+    using System.Globalization;
+    using UnityEngine;
+    using Random = System.Random;
+
     [Serializable]
-#endif
     public struct BigDouble : IFormattable, IComparable, IComparable<BigDouble>, IEquatable<BigDouble>
     {
-        public const double Tolerance = 1e-18;
+        public const double TOLERANCE = 1e-18;
 
         //for example: if two exponents are more than 17 apart, consider adding them together pointless, just return the larger one
-        private const int MaxSignificantDigits = 17;
+        private const int MAX_SIGNIFICANT_DIGITS = 17;
 
-        private const long ExpLimit = long.MaxValue;
+        private const long EXP_LIMIT = long.MaxValue;
 
         //the largest exponent that can appear in a Double, though not all mantissas are valid here.
-        private const long DoubleExpMax = 308;
+        private const long DOUBLE_EXP_MAX = 308;
 
         //The smallest exponent that can appear in a Double, though not all mantissas are valid here.
-        private const long DoubleExpMin = -324;
+        private const long DOUBLE_EXP_MIN = -324;
 
-#if UNITY_2017_1_OR_NEWER
-        [SerializeField]
-        private double mantissa;
-        [SerializeField]
-        private long exponent;
-#else
-        private double mantissa;
-        private long exponent;
-#endif
+        [SerializeField] private double mantissa;
+        [SerializeField] private long   exponent;
 
         // This constructor is used to prevent non-normalized values to be created via constructor.
         // ReSharper disable once UnusedParameter.Local
@@ -54,8 +40,8 @@ namespace BreakInfinity
 
         public BigDouble(BigDouble other)
         {
-            mantissa = other.mantissa;
-            exponent = other.exponent;
+            this.mantissa = other.mantissa;
+            this.exponent = other.exponent;
         }
 
         public BigDouble(double value)
@@ -85,7 +71,7 @@ namespace BreakInfinity
 
         public static BigDouble Normalize(double mantissa, long exponent)
         {
-            if (mantissa >= 1 && mantissa < 10 || !IsFinite(mantissa))
+            if (mantissa is >= 1 and < 10 || !IsFinite(mantissa))
             {
                 return FromMantissaExponentNoNormalize(mantissa, exponent);
             }
@@ -96,21 +82,20 @@ namespace BreakInfinity
 
             var tempExponent = (long)Math.Floor(Math.Log10(Math.Abs(mantissa)));
             //SAFETY: handle 5e-324, -5e-324 separately
-            if (tempExponent == DoubleExpMin)
+            if (tempExponent is DOUBLE_EXP_MIN)
             {
                 mantissa = mantissa * 10 / 1e-323;
             }
             else
             {
-                mantissa = mantissa / PowersOf10.Lookup(tempExponent);
+                mantissa /= PowersOf10.Lookup(tempExponent);
             }
 
             return FromMantissaExponentNoNormalize(mantissa, exponent + tempExponent);
         }
 
-        public double Mantissa => mantissa;
-
-        public long Exponent => exponent;
+        public double Mantissa => this.mantissa;
+        public long   Exponent => this.exponent;
 
         public static BigDouble FromMantissaExponentNoNormalize(double mantissa, long exponent)
         {
@@ -151,13 +136,13 @@ namespace BreakInfinity
         {
             if (value.IndexOf('e') != -1)
             {
-                var parts = value.Split('e');
+                var parts    = value.Split('e');
                 var mantissa = double.Parse(parts[0], CultureInfo.InvariantCulture);
                 var exponent = long.Parse(parts[1], CultureInfo.InvariantCulture);
                 return Normalize(mantissa, exponent);
             }
 
-            if (value == "NaN")
+            if (value is "NaN")
             {
                 return NaN;
             }
@@ -178,30 +163,30 @@ namespace BreakInfinity
                 return double.NaN;
             }
 
-            if (Exponent > DoubleExpMax)
+            if (this.Exponent > DOUBLE_EXP_MAX)
             {
-                return Mantissa > 0 ? double.PositiveInfinity : double.NegativeInfinity;
+                return this.Mantissa > 0 ? double.PositiveInfinity : double.NegativeInfinity;
             }
 
-            if (Exponent < DoubleExpMin)
+            if (this.Exponent < DOUBLE_EXP_MIN)
             {
-                return 0.0;
+                return 0;
             }
 
             //SAFETY: again, handle 5e-324, -5e-324 separately
-            if (Exponent == DoubleExpMin)
+            if (this.Exponent is DOUBLE_EXP_MIN)
             {
-                return Mantissa > 0 ? 5e-324 : -5e-324;
+                return this.Mantissa > 0 ? 5e-324 : -5e-324;
             }
 
-            var result = Mantissa * PowersOf10.Lookup(Exponent);
-            if (!IsFinite(result) || Exponent < 0)
+            var result = this.Mantissa * PowersOf10.Lookup(this.Exponent);
+            if (!IsFinite(result) || this.Exponent < 0)
             {
                 return result;
             }
 
-            var resultrounded = Math.Round(result);
-            if (Math.Abs(resultrounded - result) < 1e-10) return resultrounded;
+            var resultRounded = Math.Round(result);
+            if (Math.Abs(resultRounded - result) < 1e-10) return resultRounded;
             return result;
         }
 
@@ -210,12 +195,12 @@ namespace BreakInfinity
             return BigNumber.FormatBigDouble(this, null, null);
         }
 
-        public string ToString(string format)
+        public string ToString(string? format)
         {
             return BigNumber.FormatBigDouble(this, format, null);
         }
 
-        public string ToString(string format, IFormatProvider formatProvider)
+        public string ToString(string? format, IFormatProvider? formatProvider)
         {
             return BigNumber.FormatBigDouble(this, format, formatProvider);
         }
@@ -247,7 +232,7 @@ namespace BreakInfinity
                 return Zero;
             }
 
-            if (value.Exponent < MaxSignificantDigits)
+            if (value.Exponent < MAX_SIGNIFICANT_DIGITS)
             {
                 return new BigDouble(Math.Round(value.ToDouble()));
             }
@@ -267,7 +252,7 @@ namespace BreakInfinity
                 return Zero;
             }
 
-            if (value.Exponent < MaxSignificantDigits)
+            if (value.Exponent < MAX_SIGNIFICANT_DIGITS)
             {
                 return new BigDouble(Math.Round(value.ToDouble(), mode));
             }
@@ -287,7 +272,7 @@ namespace BreakInfinity
                 return Math.Sign(value.Mantissa) >= 0 ? Zero : -One;
             }
 
-            if (value.Exponent < MaxSignificantDigits)
+            if (value.Exponent < MAX_SIGNIFICANT_DIGITS)
             {
                 return new BigDouble(Math.Floor(value.ToDouble()));
             }
@@ -307,7 +292,7 @@ namespace BreakInfinity
                 return Math.Sign(value.Mantissa) > 0 ? One : Zero;
             }
 
-            if (value.Exponent < MaxSignificantDigits)
+            if (value.Exponent < MAX_SIGNIFICANT_DIGITS)
             {
                 return new BigDouble(Math.Ceiling(value.ToDouble()));
             }
@@ -327,7 +312,7 @@ namespace BreakInfinity
                 return Zero;
             }
 
-            if (value.Exponent < MaxSignificantDigits)
+            if (value.Exponent < MAX_SIGNIFICANT_DIGITS)
             {
                 return new BigDouble(Math.Truncate(value.ToDouble()));
             }
@@ -360,16 +345,16 @@ namespace BreakInfinity
             BigDouble bigger, smaller;
             if (left.Exponent >= right.Exponent)
             {
-                bigger = left;
+                bigger  = left;
                 smaller = right;
             }
             else
             {
-                bigger = right;
+                bigger  = right;
                 smaller = left;
             }
 
-            if (bigger.Exponent - smaller.Exponent > MaxSignificantDigits)
+            if (bigger.Exponent - smaller.Exponent > MAX_SIGNIFICANT_DIGITS)
             {
                 return bigger;
             }
@@ -377,8 +362,7 @@ namespace BreakInfinity
             //have to do this because adding numbers that were once integers but scaled down is imprecise.
             //Example: 299 + 18
             return Normalize(
-                Math.Round(1e14 * bigger.Mantissa + 1e14 * smaller.Mantissa *
-                           PowersOf10.Lookup(smaller.Exponent - bigger.Exponent)),
+                Math.Round(1e14 * bigger.Mantissa + 1e14 * smaller.Mantissa * PowersOf10.Lookup(smaller.Exponent - bigger.Exponent)),
                 bigger.Exponent - 14);
         }
 
@@ -458,61 +442,63 @@ namespace BreakInfinity
             return value.Subtract(1);
         }
 
-        public int CompareTo(object other)
+        public int CompareTo(object? other)
         {
-            if (other == null)
+            return other switch
             {
-                return 1;
-            }
-            if (other is BigDouble)
-            {
-                return CompareTo((BigDouble) other);
-            }
-            throw new ArgumentException("The parameter must be a BigDouble.");
+                null                => 1,
+                BigDouble bigDouble => this.CompareTo(bigDouble),
+                _                   => throw new ArgumentException("The parameter must be a BigDouble."),
+            };
         }
 
         public int CompareTo(BigDouble other)
         {
             if (
-                IsZero(Mantissa) || IsZero(other.Mantissa)
-                || IsNaN(this) || IsNaN(other)
-                || IsInfinity(this) || IsInfinity(other))
+                IsZero(this.Mantissa)
+                || IsZero(other.Mantissa)
+                || IsNaN(this)
+                || IsNaN(other)
+                || IsInfinity(this)
+                || IsInfinity(other))
             {
                 // Let Double handle these cases.
-                return Mantissa.CompareTo(other.Mantissa);
+                return this.Mantissa.CompareTo(other.Mantissa);
             }
-            if (Mantissa > 0 && other.Mantissa < 0)
+            if (this.Mantissa > 0 && other.Mantissa < 0)
             {
                 return 1;
             }
-            if (Mantissa < 0 && other.Mantissa > 0)
+            if (this.Mantissa < 0 && other.Mantissa > 0)
             {
                 return -1;
             }
 
-            var exponentComparison = Exponent.CompareTo(other.Exponent);
+            var exponentComparison = this.Exponent.CompareTo(other.Exponent);
             return exponentComparison != 0
-                ? (Mantissa > 0 ? exponentComparison : -exponentComparison)
-                : Mantissa.CompareTo(other.Mantissa);
+                ? this.Mantissa > 0 ? exponentComparison : -exponentComparison
+                : this.Mantissa.CompareTo(other.Mantissa);
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object? other)
         {
-            return other is BigDouble && Equals((BigDouble)other);
+            return other is BigDouble bigDouble && this.Equals(bigDouble);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return (Mantissa.GetHashCode() * 397) ^ Exponent.GetHashCode();
+                return (this.Mantissa.GetHashCode() * 397) ^ this.Exponent.GetHashCode();
             }
         }
 
         public bool Equals(BigDouble other)
         {
-            return !IsNaN(this) && !IsNaN(other) && (AreSameInfinity(this, other)
-                || Exponent == other.Exponent && AreEqual(Mantissa, other.Mantissa));
+            return !IsNaN(this)
+                && !IsNaN(other)
+                && (AreSameInfinity(this, other)
+                    || this.Exponent == other.Exponent && AreEqual(this.Mantissa, other.Mantissa));
         }
 
         /// <summary>
@@ -524,8 +510,10 @@ namespace BreakInfinity
         /// </summary>
         public bool Equals(BigDouble other, double tolerance)
         {
-            return !IsNaN(this) && !IsNaN(other) && (AreSameInfinity(this, other)
-                || Abs(this - other) <= Max(Abs(this), Abs(other)) * tolerance);
+            return !IsNaN(this)
+                && !IsNaN(other)
+                && (AreSameInfinity(this, other)
+                    || Abs(this - other) <= Max(Abs(this), Abs(other)) * tolerance);
         }
 
         private static bool AreSameInfinity(BigDouble first, BigDouble second)
@@ -647,8 +635,8 @@ namespace BreakInfinity
         public static BigDouble Pow10(double power)
         {
             return IsInteger(power)
-                ? Pow10((long) power)
-                : Normalize(Math.Pow(10, power % 1), (long) Math.Truncate(power));
+                ? Pow10((long)power)
+                : Normalize(Math.Pow(10, power % 1), (long)Math.Truncate(power));
         }
 
         public static BigDouble Pow10(long power)
@@ -673,7 +661,7 @@ namespace BreakInfinity
             {
                 // TODO: This is rather dumb, but works anyway
                 // Power is too big for our mantissa, so we do multiple Pow with smaller powers.
-                return Pow(Pow(value, 2), (double) power / 2);
+                return Pow(Pow(value, 2), (double)power / 2);
             }
 
             return Normalize(mantissa, value.Exponent * power);
@@ -702,28 +690,28 @@ namespace BreakInfinity
             //TODO: Fast track seems about neutral for performance. It might become faster if an integer pow is implemented, or it might not be worth doing (see https://github.com/Patashu/break_infinity.js/issues/4 )
 
             //Fast track: If (this.exponent*value) is an integer and mantissa^value fits in a Number, we can do a very fast method.
-            var temp = value.Exponent * other;
+            var    temp = value.Exponent * other;
             double newMantissa;
-            if (IsInteger(temp) && IsFinite(temp) && Math.Abs(temp) < ExpLimit)
+            if (IsInteger(temp) && IsFinite(temp) && Math.Abs(temp) < EXP_LIMIT)
             {
                 newMantissa = Math.Pow(value.Mantissa, other);
                 if (IsFinite(newMantissa))
                 {
-                    return Normalize(newMantissa, (long) temp);
+                    return Normalize(newMantissa, (long)temp);
                 }
             }
 
             //Same speed and usually more accurate. (An arbitrary-precision version of this calculation is used in break_break_infinity.js, sacrificing performance for utter accuracy.)
 
-            var newexponent = Math.Truncate(temp);
-            var residue = temp - newexponent;
+            var newExponent = Math.Truncate(temp);
+            var residue     = temp - newExponent;
             newMantissa = Math.Pow(10, other * Math.Log10(value.Mantissa) + residue);
             if (IsFinite(newMantissa))
             {
-                return Normalize(newMantissa, (long) newexponent);
+                return Normalize(newMantissa, (long)newExponent);
             }
 
-            //UN-SAFETY: This should return NaN when mantissa is negative and value is noninteger.
+            //UN-SAFETY: This should return NaN when mantissa is negative and value is non-integer.
             var result = Pow10(other * AbsLog10(value)); //this is 2x faster and gives same values AFAIK
             if (Sign(value) == -1 && AreEqual(other % 2, 1))
             {
@@ -757,36 +745,31 @@ namespace BreakInfinity
             if (value.Exponent % 2 != 0)
             {
                 // mod of a negative number is negative, so != means '1 or -1'
-                return Normalize(Math.Sqrt(value.Mantissa) * 3.16227766016838, (long) Math.Floor(value.Exponent / 2.0));
+                return Normalize(Math.Sqrt(value.Mantissa) * 3.16227766016838, (long)Math.Floor(value.Exponent / 2.0));
             }
 
-            return Normalize(Math.Sqrt(value.Mantissa), (long) Math.Floor(value.Exponent / 2.0));
+            return Normalize(Math.Sqrt(value.Mantissa), (long)Math.Floor(value.Exponent / 2.0));
         }
 
         public static BigDouble Cbrt(BigDouble value)
         {
-            var sign = 1;
+            var sign     = 1;
             var mantissa = value.Mantissa;
             if (mantissa < 0)
             {
-                sign = -1;
+                sign     = -1;
                 mantissa = -mantissa;
             }
 
-            var newmantissa = sign * Math.Pow(mantissa, 1 / 3.0);
+            var newMantissa = sign * Math.Pow(mantissa, 1 / 3.0);
 
             var mod = value.Exponent % 3;
-            if (mod == 1 || mod == -1)
+            return mod switch
             {
-                return Normalize(newmantissa * 2.1544346900318837, (long) Math.Floor(value.Exponent / 3.0));
-            }
-
-            if (mod != 0)
-            {
-                return Normalize(newmantissa * 4.6415888336127789, (long) Math.Floor(value.Exponent / 3.0));
-            } //mod != 0 at this point means 'mod == 2 || mod == -2'
-
-            return Normalize(newmantissa, (long) Math.Floor(value.Exponent / 3.0));
+                1 or -1 => Normalize(newMantissa * 2.1544346900318837, (long)Math.Floor(value.Exponent / 3.0)),
+                2 or -2 => Normalize(newMantissa * 4.6415888336127789, (long)Math.Floor(value.Exponent / 3.0)),
+                _       => Normalize(newMantissa, (long)Math.Floor(value.Exponent / 3.0)),
+            };
         }
 
         public static BigDouble Sinh(BigDouble value)
@@ -827,7 +810,7 @@ namespace BreakInfinity
 
         private static bool AreEqual(double first, double second)
         {
-            return Math.Abs(first - second) < Tolerance;
+            return Math.Abs(first - second) < TOLERANCE;
         }
 
         private static bool IsInteger(double value)
@@ -845,16 +828,15 @@ namespace BreakInfinity
         /// </summary>
         private static class BigNumber
         {
-            public static string FormatBigDouble(BigDouble value, string format, IFormatProvider formatProvider)
+            public static string FormatBigDouble(BigDouble value, string? format, IFormatProvider? _)
             {
                 if (IsNaN(value)) return "NaN";
-                if (value.Exponent >= ExpLimit)
+                if (value.Exponent >= EXP_LIMIT)
                 {
                     return value.Mantissa > 0 ? "Infinity" : "-Infinity";
                 }
 
-                int formatDigits;
-                var formatSpecifier = ParseFormatSpecifier(format, out formatDigits);
+                var formatSpecifier = ParseFormatSpecifier(format, out var formatDigits);
                 switch (formatSpecifier)
                 {
                     case 'R':
@@ -868,20 +850,20 @@ namespace BreakInfinity
                 throw new FormatException($"Unknown string format '{formatSpecifier}'");
             }
 
-            private static char ParseFormatSpecifier(string format, out int digits)
+            private static char ParseFormatSpecifier(string? format, out int digits)
             {
-                const char customFormat = (char) 0;
+                const char CUSTOM_FORMAT = (char)0;
                 digits = -1;
                 if (string.IsNullOrEmpty(format))
                 {
                     return 'R';
                 }
 
-                var i = 0;
+                var i  = 0;
                 var ch = format[i];
-                if ((ch < 'A' || ch > 'Z') && (ch < 'a' || ch > 'z'))
+                if (ch is (< 'A' or > 'Z') and (< 'a' or > 'z'))
                 {
-                    return customFormat;
+                    return CUSTOM_FORMAT;
                 }
 
                 i++;
@@ -900,7 +882,7 @@ namespace BreakInfinity
 
                 if (i < format.Length && format[i] != '\0')
                 {
-                    return customFormat;
+                    return CUSTOM_FORMAT;
                 }
 
                 digits = n;
@@ -909,20 +891,21 @@ namespace BreakInfinity
 
             private static string FormatGeneral(BigDouble value, int places)
             {
-                if (value.Exponent <= -ExpLimit || IsZero(value.Mantissa))
+                if (value.Exponent <= -EXP_LIMIT || IsZero(value.Mantissa))
                 {
                     return "0";
                 }
 
                 var format = places > 0 ? $"G{places}" : "G";
-                if (value.Exponent < 21 && value.Exponent > -7)
+                if (value.Exponent is < 21 and > -7)
                 {
                     return value.ToDouble().ToString(format, CultureInfo.InvariantCulture);
                 }
 
                 return value.Mantissa.ToString(format, CultureInfo.InvariantCulture)
-                       + "E" + (value.Exponent >= 0 ? "+" : "")
-                       + value.Exponent.ToString(CultureInfo.InvariantCulture);
+                    + "E"
+                    + (value.Exponent >= 0 ? "+" : "")
+                    + value.Exponent.ToString(CultureInfo.InvariantCulture);
             }
 
             private static string ToFixed(double value, int places)
@@ -932,31 +915,33 @@ namespace BreakInfinity
 
             private static string FormatExponential(BigDouble value, int places)
             {
-                if (value.Exponent <= -ExpLimit || IsZero(value.Mantissa))
+                if (value.Exponent <= -EXP_LIMIT || IsZero(value.Mantissa))
                 {
                     return "0" + (places > 0 ? ".".PadRight(places + 1, '0') : "") + "E+0";
                 }
 
-                var len = (places >= 0 ? places : MaxSignificantDigits) + 1;
+                var len       = (places >= 0 ? places : MAX_SIGNIFICANT_DIGITS) + 1;
                 var numDigits = (int)Math.Ceiling(Math.Log10(Math.Abs(value.Mantissa)));
-                var rounded = Math.Round(value.Mantissa * Math.Pow(10, len - numDigits)) * Math.Pow(10, numDigits - len);
+                var rounded   = Math.Round(value.Mantissa * Math.Pow(10, len - numDigits)) * Math.Pow(10, numDigits - len);
 
                 var mantissa = ToFixed(rounded, Math.Max(len - numDigits, 0));
                 if (mantissa != "0" && places < 0)
                 {
                     mantissa = mantissa.TrimEnd('0', '.');
                 }
-                return mantissa + "E" + (value.Exponent >= 0 ? "+" : "")
-                       + value.Exponent;
+                return mantissa
+                    + "E"
+                    + (value.Exponent >= 0 ? "+" : "")
+                    + value.Exponent;
             }
 
             private static string FormatFixed(BigDouble value, int places)
             {
                 if (places < 0)
                 {
-                    places = MaxSignificantDigits;
+                    places = MAX_SIGNIFICANT_DIGITS;
                 }
-                if (value.Exponent <= -ExpLimit || IsZero(value.Mantissa))
+                if (value.Exponent <= -EXP_LIMIT || IsZero(value.Mantissa))
                 {
                     return "0" + (places > 0 ? ".".PadRight(places + 1, '0') : "");
                 }
@@ -965,13 +950,13 @@ namespace BreakInfinity
                 // 1) exponent is 17 or greater: just print out mantissa with the appropriate number of zeroes after it
                 // 2) exponent is 16 or less: use basic toFixed
 
-                if (value.Exponent >= MaxSignificantDigits)
+                if (value.Exponent >= MAX_SIGNIFICANT_DIGITS)
                 {
                     // TODO: StringBuilder-optimizable
                     return value.Mantissa
-                        .ToString(CultureInfo.InvariantCulture)
-                        .Replace(".", "")
-                        .PadRight((int)value.Exponent + 1, '0')
+                            .ToString(CultureInfo.InvariantCulture)
+                            .Replace(".", "")
+                            .PadRight((int)value.Exponent + 1, '0')
                         + (places > 0 ? ".".PadRight(places + 1, '0') : "");
                 }
                 return ToFixed(value.ToDouble(), places);
@@ -985,26 +970,28 @@ namespace BreakInfinity
         /// </summary>
         private static class PowersOf10
         {
-            private static double[] Powers { get; } = new double[DoubleExpMax - DoubleExpMin];
+            private static double[] Powers { get; } = new double[DOUBLE_EXP_MAX - DOUBLE_EXP_MIN];
 
-            private const long IndexOf0 = -DoubleExpMin - 1;
+            private const long INDEX_OF_0 = -DOUBLE_EXP_MIN - 1;
 
             static PowersOf10()
             {
                 var index = 0;
                 for (var i = 0; i < Powers.Length; i++)
                 {
-                    Powers[index++] = double.Parse("1e" + (i - IndexOf0), CultureInfo.InvariantCulture);
+                    Powers[index++] = double.Parse("1e" + (i - INDEX_OF_0), CultureInfo.InvariantCulture);
                 }
             }
 
             public static double Lookup(long power)
             {
-                return Powers[IndexOf0 + power];
+                return Powers[INDEX_OF_0 + power];
             }
         }
 
-        private struct PrivateConstructorArg { }
+        private struct PrivateConstructorArg
+        {
+        }
     }
 
     public static class BigMath
@@ -1042,8 +1029,12 @@ namespace BreakInfinity
         /// Adapted from Trimps source code.
         /// </para>
         /// </summary>
-        public static BigDouble AffordGeometricSeries(BigDouble resourcesAvailable, BigDouble priceStart,
-            BigDouble priceRatio, BigDouble currentOwned)
+        public static BigDouble AffordGeometricSeries(
+            BigDouble resourcesAvailable,
+            BigDouble priceStart,
+            BigDouble priceRatio,
+            BigDouble currentOwned
+        )
         {
             var actualStart = priceStart * BigDouble.Pow(priceRatio, currentOwned);
 
@@ -1056,8 +1047,12 @@ namespace BreakInfinity
         /// How much resource would it cost to buy (numItems) items if you already have currentOwned,
         /// the initial price is priceStart and it multiplies by priceRatio each purchase?
         /// </summary>
-        public static BigDouble SumGeometricSeries(BigDouble numItems, BigDouble priceStart, BigDouble priceRatio,
-            BigDouble currentOwned)
+        public static BigDouble SumGeometricSeries(
+            BigDouble numItems,
+            BigDouble priceStart,
+            BigDouble priceRatio,
+            BigDouble currentOwned
+        )
         {
             var actualStart = priceStart * BigDouble.Pow(priceRatio, currentOwned);
 
@@ -1069,8 +1064,12 @@ namespace BreakInfinity
         /// additively increasing cost each purchase (start at priceStart, add by priceAdd,
         /// already own currentOwned), how much of it can you buy?
         /// </summary>
-        public static BigDouble AffordArithmeticSeries(BigDouble resourcesAvailable, BigDouble priceStart,
-            BigDouble priceAdd, BigDouble currentOwned)
+        public static BigDouble AffordArithmeticSeries(
+            BigDouble resourcesAvailable,
+            BigDouble priceStart,
+            BigDouble priceAdd,
+            BigDouble currentOwned
+        )
         {
             var actualStart = priceStart + currentOwned * priceAdd;
 
@@ -1078,7 +1077,7 @@ namespace BreakInfinity
             //where a is actualStart, d is priceAdd and S is resourcesAvailable
             //then floor it and you're done!
 
-            var b = actualStart - priceAdd / 2;
+            var b  = actualStart - priceAdd / 2;
             var b2 = BigDouble.Pow(b, 2);
 
             return BigDouble.Floor(
@@ -1093,8 +1092,12 @@ namespace BreakInfinity
         /// Adapted from http://www.mathwords.com/a/arithmetic_series.htm
         /// </para>
         /// </summary>
-        public static BigDouble SumArithmeticSeries(BigDouble numItems, BigDouble priceStart, BigDouble priceAdd,
-            BigDouble currentOwned)
+        public static BigDouble SumArithmeticSeries(
+            BigDouble numItems,
+            BigDouble priceStart,
+            BigDouble priceAdd,
+            BigDouble currentOwned
+        )
         {
             var actualStart = priceStart + currentOwned * priceAdd;
 
@@ -1287,23 +1290,5 @@ namespace BreakInfinity
         {
             return BigDouble.Pow(value, 2);
         }
-
-#if EXTENSIONS_EASTER_EGGS
-        /// <summary>
-        /// Joke function from Realm Grinder.
-        /// </summary>
-        public static BigDouble AscensionPenalty(this BigDouble value, double ascensions)
-        {
-            return Math.Abs(ascensions) < double.Epsilon ? value : BigDouble.Pow(value, Math.Pow(10, -ascensions));
-        }
-
-        /// <summary>
-        /// Joke function from Cookie Clicker. It's an 'egg'.
-        /// </summary>
-        public static BigDouble Egg(this BigDouble value)
-        {
-            return value + 9;
-        }
-#endif
     }
 }
