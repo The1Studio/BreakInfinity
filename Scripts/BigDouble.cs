@@ -2,7 +2,9 @@
 namespace BreakInfinity
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using UnityEngine;
     using Random = System.Random;
 
@@ -828,6 +830,14 @@ namespace BreakInfinity
         /// </summary>
         private static class BigNumber
         {
+            private static readonly IReadOnlyList<string> IncrementalUnits;
+
+            static BigNumber()
+            {
+                var alphas = Enumerable.Range('A', 'Z' - 'A' + 1).Select(i => (char)i).Prepend(' ').ToArray();
+                IncrementalUnits = alphas.SelectMany(l0 => alphas.SelectMany(l1 => alphas.Select(l2 => string.Concat(l0, l1, l2).Trim()))).ToArray();
+            }
+
             public static string FormatBigDouble(BigDouble value, string? format, IFormatProvider? _)
             {
                 if (IsNaN(value)) return "NaN";
@@ -837,17 +847,14 @@ namespace BreakInfinity
                 }
 
                 var formatSpecifier = ParseFormatSpecifier(format, out var formatDigits);
-                switch (formatSpecifier)
+                return formatSpecifier switch
                 {
-                    case 'R':
-                    case 'G':
-                        return FormatGeneral(value, formatDigits);
-                    case 'E':
-                        return FormatExponential(value, formatDigits);
-                    case 'F':
-                        return FormatFixed(value, formatDigits);
-                }
-                throw new FormatException($"Unknown string format '{formatSpecifier}'");
+                    'I' => FormatIncremental(value, formatDigits),
+                    'G' => FormatGeneral(value, formatDigits),
+                    'E' => FormatExponential(value, formatDigits),
+                    'F' => FormatFixed(value, formatDigits),
+                    _   => throw new FormatException($"Unknown string format '{formatSpecifier}'"),
+                };
             }
 
             private static char ParseFormatSpecifier(string? format, out int digits)
@@ -856,7 +863,7 @@ namespace BreakInfinity
                 digits = -1;
                 if (string.IsNullOrEmpty(format))
                 {
-                    return 'R';
+                    return 'I';
                 }
 
                 var i  = 0;
@@ -887,6 +894,15 @@ namespace BreakInfinity
 
                 digits = n;
                 return ch;
+            }
+
+            private static string FormatIncremental(BigDouble value, int places)
+            {
+                var log10    = (long)Log10(value);
+                var mantissa = value.Mantissa * PowersOf10.Lookup(log10 % 3) % 1000;
+                var unit     = (int)(log10 / 3);
+                var format   = places < 0 ? "F1" : $"F{places}";
+                return mantissa.ToString(format, CultureInfo.InvariantCulture) + IncrementalUnits[unit];
             }
 
             private static string FormatGeneral(BigDouble value, int places)
