@@ -1,0 +1,13 @@
+﻿{
+  "name": "com.razenpok.breakinfinity",
+  "displayName": "BreakInfinity",
+  "description": "A solution for incremental games which want to deal with very large numbers (bigger in magnitude than 1e308, up to as much as 1e(9e15) ) and want to prioritize speed over accuracy",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "license": "MIT",
+  "author": {
+    "name": "Razenpok",
+    "email": "Razenpok@outlook.com",
+    "url": "https://github.com/Razenpok"
+  }
+}
