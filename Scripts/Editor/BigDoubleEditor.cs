@@ -1,12 +1,12 @@
 #if UNITY_EDITOR
 #nullable enable
-namespace BreakInfinity
+namespace BreakInfinity.Editor
 {
     using UnityEditor;
     using UnityEngine;
 
     [CustomPropertyDrawer(typeof(BigDouble))]
-    public class BigDoubleDrawer : PropertyDrawer
+    internal sealed class BigDoubleDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
@@ -20,18 +20,15 @@ namespace BreakInfinity
             var         gapRect      = new Rect(mantissaRect.x + mantissaRect.width, position.y, GAP_WIDTH, position.height);
             var         exponentRect = new Rect(gapRect.x + gapRect.width, position.y, (position.width - GAP_WIDTH) * 0.33f, position.height);
 
-            var mantissaProperty = property.FindPropertyRelative("mantissa");
-            var exponentProperty = property.FindPropertyRelative("exponent");
+            var mantissaProperty = property.FindPropertyRelative("<Mantissa>k__BackingField");
+            var exponentProperty = property.FindPropertyRelative("<Exponent>k__BackingField");
 
             EditorGUI.BeginChangeCheck();
             var mantissa = EditorGUI.DoubleField(mantissaRect, mantissaProperty.doubleValue, new GUIStyle(EditorStyles.numberField)
             {
                 alignment = TextAnchor.MiddleRight,
             });
-            EditorGUI.LabelField(gapRect, "e", new GUIStyle(GUIStyle.none)
-            {
-                alignment = TextAnchor.MiddleCenter,
-            });
+            EditorGUI.LabelField(gapRect, "e");
             var exponent = EditorGUI.LongField(exponentRect, exponentProperty.longValue);
 
             if (EditorGUI.EndChangeCheck())

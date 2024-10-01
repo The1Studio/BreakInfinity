@@ -1,0 +1,10 @@
+﻿{
+  "name": "BreakInfinity.Editor",
+  "rootNamespace": "BreakInfinity.Editor",
+  "references": [
+    "BreakInfinity"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}
