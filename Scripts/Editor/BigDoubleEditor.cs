@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 #nullable enable
 namespace BreakInfinity.Editor
 {
@@ -43,4 +42,3 @@ namespace BreakInfinity.Editor
         }
     }
 }
-#endif
