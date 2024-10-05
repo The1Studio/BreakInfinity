@@ -843,8 +843,8 @@ namespace BreakInfinity
 
             static BigNumber()
             {
-                var alphas = Enumerable.Range('A', 'Z' - 'A' + 1).Select(i => (char)i).Prepend(' ').ToArray();
-                IncrementalUnits = alphas.SelectMany(l0 => alphas.SelectMany(l1 => alphas.Select(l2 => string.Concat(l0, l1, l2).Trim()))).ToArray();
+                var alphabet = Enumerable.Range('A', 'Z' - 'A' + 1).Select(i => ((char)i).ToString()).Prepend(string.Empty).ToArray();
+                IncrementalUnits = alphabet.SelectMany(c0 => alphabet.SelectMany(c1 => alphabet.Select(c2 => string.Concat(c0, c1, c2)))).ToArray();
             }
 
             public static string FormatBigDouble(BigDouble value, string? format, IFormatProvider? _)
